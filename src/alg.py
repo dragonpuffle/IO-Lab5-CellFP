@@ -13,7 +13,12 @@ class SimulatedAnnealingAlgorithm:
 
     def preprocess_data(self, mp_data: list) -> np.ndarray:
         # нужно будет перевести из начального вида в матрицу m*p
+        new_mp = np.zeros((self.m, self.p))
+        for machine in range(self.m):
+            for part in mp_data[machine]:
+                new_mp[machine, part-1] = 1
 
+        return new_mp
 
 
     def objective_function(self, n1: int, n1_out: int, n0_in: int) -> float:
@@ -55,18 +60,19 @@ class SimulatedAnnealingAlgorithm:
             current_cluster = [current_part]
             assigned.add(current_part)
 
-            for _ in range(self.p // self.num_clusters - 1):
+            for _ in range(self.p // self.num_clusters):
                 candidates = [candidate for candidate in range(self.p) if candidate not in assigned]
                 if not candidates:
                     break
                 best_candidate = max(candidates, key=lambda candidate: np.mean([similarities[candidate, k] for k in current_cluster]))
                 current_cluster.append(best_candidate)
+                assigned.add(best_candidate)
 
             clusters.append(current_cluster)
 
         leftovers = [n_candidate for n_candidate in range(self.p) if n_candidate not in assigned]
-        is_leftovers_new_cluster = True
 
+        is_leftovers_new_cluster = True
         if leftovers:
             if is_leftovers_new_cluster:
                 clusters.append(leftovers)
@@ -118,16 +124,16 @@ class SimulatedAnnealingAlgorithm:
         return clusters_parts, clusters_machines
 
 
-
-
 def read_data(path: str) -> Tuple[int, int, List]:
     with open(path, 'r') as f:
-        m, p = map(int, f.readline().split())
+        m_len, p_len = map(int, f.readline().split())
         lines = [line for line in f]
 
-    mtx = [list(map(int, lines[i].split()))[1:] for i in range(m)]
-    return m, p, mtx
+    mp_data = [list(map(int, lines[i].split()))[1:] for i in range(m_len)]
+    return m_len, p_len, mp_data
 
 
 if __name__ == '__main__':
-    print(read_data('benchmarks/24x40.txt'))
+    m1, p1, mtx1 = read_data('benchmarks/24x40.txt')
+    alg = SimulatedAnnealingAlgorithm(m1, p1, mtx1)
+    print(alg.initial_solution())
