@@ -136,6 +136,9 @@ class SimulatedAnnealingAlgorithm:
         current_cluster = clusters[item_idx]
 
         possible_clusters = list(set(clusters))
+        if len(possible_clusters) < 2:
+            return clusters_parts, clusters_machines
+
         target_cluster = np.random.choice([cluster for cluster in possible_clusters if cluster != current_cluster])
         clusters[item_idx] = target_cluster
 
@@ -168,6 +171,9 @@ class SimulatedAnnealingAlgorithm:
 
 
     def solve(self):
+        # Надо делать перед 3 пунктом еще 1 while True
+        # Из 5 пункта надо возвращаться частично в первый пункт (новое решение)
+        # для этого просто в ручную это еще раз пропишем
         pass
 
 
