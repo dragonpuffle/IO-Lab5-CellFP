@@ -47,7 +47,9 @@ class SimulatedAnnealingAlgorithm:
         return similarities
 
 
-    def subtask_parts(self, similarities: np.ndarray) -> np.ndarray:
+    def subtask_parts(self) -> np.ndarray:
+        similarities = self.parts_similarities()
+
         assigned = set()
         clusters = []
 
@@ -118,10 +120,55 @@ class SimulatedAnnealingAlgorithm:
 
 
     def initial_solution(self):
-        similarities = self.parts_similarities()
-        clusters_parts = self.subtask_parts(similarities)
+        clusters_parts = self.subtask_parts()
         clusters_machines = self.subtask_machines(clusters_parts)
         return clusters_parts, clusters_machines
+
+
+    def single_move(self, clusters_parts: np.ndarray, clusters_machines: np.ndarray, mode: str='part')\
+            -> Tuple[np.ndarray, np.ndarray]:
+        if mode == 'part':
+            clusters = clusters_parts.copy()
+        else:
+            clusters = clusters_machines.copy()
+
+        item_idx = np.random.choice(len(clusters))
+        current_cluster = clusters[item_idx]
+
+        possible_clusters = list(set(clusters))
+        target_cluster = np.random.choice([cluster for cluster in possible_clusters if cluster != current_cluster])
+        clusters[item_idx] = target_cluster
+
+        if mode == 'part':
+            return clusters, clusters_machines
+        else:
+            return clusters_parts, clusters
+
+
+    def exchange_move(self, clusters_parts: np.ndarray, clusters_machines: np.ndarray, mode: str='part')\
+            -> Tuple[np.ndarray, np.ndarray]:
+        if mode == 'part':
+            clusters = clusters_parts.copy()
+        else:
+            clusters = clusters_machines.copy()
+
+        indices = np.arange(len(clusters))
+        np.random.shuffle(indices)
+
+        for i in indices:
+            for j in indices:
+                if i != j and clusters[i] != clusters[j]:
+                    clusters[i], clusters[j] = clusters[j], clusters[i]
+                    if mode == 'part':
+                        return clusters, clusters_machines
+                    else:
+                        return clusters_parts, clusters
+
+        return clusters_parts, clusters_machines
+
+
+    def solve(self):
+        pass
 
 
 def read_data(path: str) -> Tuple[int, int, List]:
