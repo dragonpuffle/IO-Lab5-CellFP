@@ -258,7 +258,7 @@ class SimulatedAnnealingAlgorithm:
             # 4
             if t <= tf or counter_stagnant > l:
                 # 5 have to be f_best_curr > f_best_total, but with >= may happen better solution through some times
-                if f_best_current_cell >= f_best_total and self.num_clusters < c_max:
+                if f_best_current_cell > f_best_total and self.num_clusters < c_max:
                     print('cells =', self.num_clusters, 'f_value =', f_best_current_cell)
                     s_parts_best_total, s_machines_best_total = (s_parts_best_current_cell.copy(),
                                                                  s_machines_best_current_cell.copy())
