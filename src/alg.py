@@ -25,6 +25,20 @@ class SimulatedAnnealingAlgorithm:
         return (n1 - n1_out) / (n1 + n0_in)
 
 
+    def calc_f(self, parts: np.ndarray, machines: np.ndarray) -> float:
+        n1 = np.sum(self.mp_data)
+        n1_out, n0_in = 0, 0
+
+        for i in range(self.m):
+            for j in range(self.p):
+                if self.mp_data[i][j] == 1 and machines[i] != parts[j]:
+                    n1_out += 1 # possibly wrong
+                elif self.mp_data[i][j] == 0 and machines[i] == parts[j]:
+                    n0_in += 1 # possibly wrong
+
+        return self.objective_function(n1, n1_out, n0_in)
+
+
     def parts_similarities(self) -> np.ndarray:
         similarities = np.zeros((self.p, self.p))
 
@@ -170,11 +184,100 @@ class SimulatedAnnealingAlgorithm:
         return clusters_parts, clusters_machines
 
 
-    def solve(self):
-        # Надо делать перед 3 пунктом еще 1 while True
-        # Из 5 пункта надо возвращаться частично в первый пункт (новое решение)
-        # для этого просто в ручную это еще раз пропишем
-        pass
+    def solve(self, t0: float = 0.85, tf: float = 0.1, alpha: float = 0.9, l: int = 100, d: int = 10)\
+            -> Tuple[float, float, np.ndarray, np.ndarray]:
+        # 1
+        s_parts_curr, s_machines_curr = self.initial_solution()
+        s_parts_best_current_cell, s_machines_best_current_cell = s_parts_curr.copy(), s_machines_curr.copy()
+        s_parts_best_total, s_machines_best_total = s_parts_curr.copy(), s_machines_curr.copy()
+
+        f_curr = self.calc_f(s_parts_curr, s_machines_curr)
+        f_best_current_cell = 0
+        f_best_total = 0
+
+        c_best = self.num_clusters
+        c_max = min(self.m, self.p)
+
+        # 2
+        counter = 0
+        counter_mc, counter_trapped, counter_stagnant = 0, 0, 0
+        t = t0
+
+        while True:
+            # 3
+            while counter_mc < l and counter_trapped < l/2:
+                # 3.1
+                s_parts_new, s_machines_new = self.single_move(s_parts_curr, s_machines_curr, mode='part')
+
+                # 3.2
+                if counter % d ==0:
+                    s_parts_new, s_machines_new = self.exchange_move(s_parts_new, s_machines_new, mode='part')
+
+                # 3.3
+                s_parts_neighbor = s_parts_new.copy()
+                s_machines_neighbor = self.subtask_machines(s_parts_neighbor)
+                f_neighbor = self.calc_f(s_parts_neighbor, s_machines_neighbor)
+
+                # 3.4
+                if f_neighbor > f_best_current_cell:
+                    s_parts_best_current_cell, s_machines_best_current_cell = (s_parts_neighbor.copy(),
+                                                                               s_machines_neighbor.copy())
+                    f_best_current_cell = f_neighbor
+
+                    s_parts_curr, s_machines_curr = s_parts_neighbor.copy(),s_machines_neighbor.copy()
+                    f_curr = f_neighbor
+
+                    counter_stagnant = 0
+                    counter_mc += 1
+                    continue
+
+                # 3.5
+                if f_neighbor == f_best_current_cell:
+                    s_parts_curr, s_machines_curr = s_parts_neighbor.copy(),s_machines_neighbor.copy()
+                    f_curr = f_neighbor
+
+                    counter_stagnant += 1
+                    counter_mc += 1
+                    continue
+
+                # 3.6
+                delta = f_neighbor - f_curr
+                prob = np.exp(-delta / t)
+                if prob > np.random.rand():
+                    s_parts_curr, s_machines_curr = s_parts_neighbor.copy(),s_machines_neighbor.copy()
+                    f_curr = f_neighbor
+
+                    counter_trapped = 0
+                else:
+                    counter_trapped += 1
+
+                # 3.7
+                counter_mc += 1
+                continue
+
+            # 4
+            if t <= tf or counter_stagnant > l:
+                # 5 have to be f_best_curr > f_best_total, but with >= may happen better solution through some times
+                if f_best_current_cell >= f_best_total and self.num_clusters < c_max:
+                    print('cells =', self.num_clusters, 'f_value =', f_best_current_cell)
+                    s_parts_best_total, s_machines_best_total = (s_parts_best_current_cell.copy(),
+                                                                 s_machines_best_current_cell.copy())
+                    f_best_total = f_best_current_cell
+
+                    c_best = self.num_clusters
+                    self.num_clusters += 1
+
+                    # go to 2
+                    s_parts_curr, s_machines_curr = self.initial_solution()
+                    counter = 0
+                    counter_mc, counter_trapped, counter_stagnant = 0, 0, 0
+                    t = t0
+                else:
+                    return f_best_total, c_best, s_parts_best_total, s_machines_best_total
+            else:
+                t *= alpha
+                counter_mc = 0
+                counter += 1
 
 
 def read_data(path: str) -> Tuple[int, int, List]:
@@ -189,4 +292,4 @@ def read_data(path: str) -> Tuple[int, int, List]:
 if __name__ == '__main__':
     m1, p1, mtx1 = read_data('benchmarks/24x40.txt')
     alg = SimulatedAnnealingAlgorithm(m1, p1, mtx1)
-    print(alg.initial_solution())
+    print(alg.solve())
