@@ -48,7 +48,7 @@ class Benchmark:
             'best_parts': " ".join(map(str, best_parts)),
             'best_machines': " ".join(map(str, best_machines))
         })
-        self.save_solution("../results/"+benchmark[:-4] + ".sol", best_machines, best_parts)
+        self.save_solution("results/"+benchmark[:-4] + ".sol", best_machines, best_parts)
 
     def save_solution(self, file_path: str, best_machines, best_parts) -> None:
         with open(file_path, 'w') as file:
@@ -58,5 +58,5 @@ class Benchmark:
 
 
 if __name__ == '__main__':
-    benchmark = Benchmark(SimulatedAnnealingAlgorithm, '../benchmarks', 5)
+    benchmark = Benchmark(SimulatedAnnealingAlgorithm, 'benchmarks', 5)
     benchmark.run_all()
